@@ -180,7 +180,7 @@ create or replace package body idn is
             basic := 0;
         end if;
 
-        for j in 1 .. basic loop
+        for j in 1 .. (basic - 1) loop
             if (unicode_point(substr(input, j, 1)) >= 128) then -- 128 == 0x80
                 raise illegal_input;
             end if;
@@ -269,8 +269,7 @@ create or replace package body idn is
         t            number;
         ijv          number;
         case_flags   varchar2(1);
-        input_utf8   varchar2(256) := convert(input, 'utf8');
-        input_length number        := nvl(length(input_utf8), 0);
+        input_length number        := nvl(length(input), 0);
         output       varchar2(256) := '';
         c            varchar2(1 char);
     begin
