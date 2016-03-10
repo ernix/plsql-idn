@@ -120,7 +120,7 @@ create or replace package body idn is
         if (firsttime) then
             delta := trunc(delta / damp);
         else
-            delta := delta / 2;
+            delta := trunc(delta / 2);
         end if;
 
         delta := delta + trunc(delta / numpoints);
