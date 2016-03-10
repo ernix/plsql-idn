@@ -26,7 +26,7 @@ create or replace package idn is
     ) return varchar2 deterministic;
     function unicode_point (c varchar2)
         return number deterministic;
-    function decode_punycode (input varchar2)
+    function decode_punycode (input varchar2, preserve_case boolean := false)
         return varchar2 deterministic;
     function encode_punycode (input varchar2, preserve_case boolean := false)
         return varchar2 deterministic;

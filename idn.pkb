@@ -150,18 +150,19 @@ create or replace package body idn is
 
     -- public
     function decode_punycode (
-        input varchar2
+        input varchar2,
+        preserve_case boolean := false
     ) return varchar2 deterministic is
         illegal_input exception;
         pragma exception_init(illegal_input, -6503);
         range_error exception;
         pragma exception_init(range_error, -6504);
-        type string_array is varray(256) of char(4) not null;
-        output     string_array := string_array(256);
-        case_flags string_array := string_array(256);
+        output     varchar2(256) := '';
+        output_uni varchar2(256) := '';
+        case_flags varchar2(256);
         input_len  number := nvl(length(input), 0);
         n          number := initial_n;
-        o          number;
+        o          number := 0;
         i          number := 0;
         bias       number := initial_bias;
         basic      number := instr(input, delimiter, -1, 1);
@@ -184,7 +185,8 @@ create or replace package body idn is
             if (unicode_point(substr(input, j, 1)) >= 128) then -- 128 == 0x80
                 raise illegal_input;
             end if;
-            output(j) := substr(input, j, 1);
+            output := output || substr(input, j, 1);
+            o := o + 1;
         end loop;
 
         if (basic > 0) then
@@ -195,7 +197,7 @@ create or replace package body idn is
             oldi := i;
             w := 1;
             k := base;
-            while (1 = 1) loop
+            loop
                 if (ic >= input_len) then
                     raise range_error;
                 end if;
@@ -224,10 +226,12 @@ create or replace package body idn is
                     raise range_error;
                 end if;
 
+                w := w * (base - t);
+
                 k := k + base;
             end loop;
 
-            o := output.count + 1;
+            o := o + 1;
             bias := adapt(i - oldi, o, oldi = 0);
 
             if (trunc(i / o) > maxint - n) then
@@ -237,15 +241,13 @@ create or replace package body idn is
             n := n + trunc(i / o);
             i := mod(i, o);
 
-            output(i + 1) := n;
+            -- TODO: varchar2ではごまかせない。これは本格的にvarrayを使わないといけないかも。
+            output := splice(output, i, 1, '\\' || trim(to_char(n, 'xxxx')));
+        dbms_output.put_line(unistr(output));
             i := i + 1;
         end loop;
 
-        for l in 1 .. output.count loop
-            ret := output(l);
-        end loop;
-
-        return ret;
+        return output_uni;
     exception
         when illegal_input then return null;
         when range_error   then return null;
@@ -395,8 +397,26 @@ create or replace package body idn is
     ) return varchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
+        dot_count number := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
+        i number;
+        part varchar2(256) := '';
+        ret  varchar2(256) := '';
     begin
-        return 'TODO: ascii_to_domain';
+        for i in 0 .. dot_count loop
+            part := get_token(domain, i + 1);
+
+            if (regexp_like(part, '^' || idn_prefix)) then
+                part := substr(part, 5);
+            end if;
+
+            if (i != dot_count) then
+                ret := ret || '.';
+            end if;
+        end loop;
+
+        return ret;
+    exception
+        when invalid_domain then return null;
     end;
 end;
 /
