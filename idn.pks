@@ -35,7 +35,7 @@
  *       -------------------------------------
  *       xn--q9jyb4c.foo.com
  *
- * SEE ALSO:
+ * PORT FROM:
  *   http://stackoverflow.com/questions/183485/can-anyone-recommend-a-good-free-javascript-for-punycode-to-unicode-conversion
  *
  * AUTHOR:
