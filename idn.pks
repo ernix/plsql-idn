@@ -18,12 +18,6 @@
  *   "Shin Kojima" <kojima@interlink.ad.jp>
  */
 create or replace package idn is
-    function splice (
-        str varchar2,
-        pos number,
-        len number,
-        rep varchar2 := ''
-    ) return varchar2 deterministic;
     function unicode_point (c varchar2)
         return number deterministic;
     function decode_punycode (input varchar2, preserve_case boolean := false)

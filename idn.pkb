@@ -38,18 +38,6 @@ create or replace package body idn is
         end if;
     end;
 
-    function splice (
-        str varchar2,
-        pos number,
-        len number,
-        rep varchar2 := ''
-    ) return varchar2 deterministic is
-    begin
-        return substr(str, 1, pos - 1)
-            || rep
-            || substr(str, pos + len, length(str));
-    end;
-
     -- http://www.sqlsnippets.com/en/topic-13438.html
     function unicode_point (
         c varchar2
@@ -178,6 +166,9 @@ create or replace package body idn is
         len        number;
         l          number;
         ret        varchar2(256) := '';
+        hhhhhhhh   varchar2(8);
+        surrogate_high varchar2(4);
+        surrogate_low  varchar2(4);
     begin
         if (basic < 0) then
             basic := 0;
@@ -251,7 +242,18 @@ create or replace package body idn is
                 output_arr(output_arr.count - j + 1)
                     := output_arr(output_arr.count - j);
             end loop;
-            output_arr(i + 1) := unistr(backslash || trim(to_char(n, 'XXXX')));
+            hhhhhhhh := lpad(to_char(n, 'FMXXXXXXXX'), 8, '0');
+            surrogate_high := substr(hhhhhhhh, 1, 4);
+            surrogate_low  := substr(hhhhhhhh, 5);
+            if (surrogate_high != '0000') then
+                output_arr(i + 1)
+                    := unistr( backslash
+                            || surrogate_high
+                            || backslash
+                            || surrogate_low);
+            else
+                output_arr(i + 1) := unistr(backslash || surrogate_low);
+            end if;
 
             i := i + 1;
         end loop;
@@ -421,8 +423,10 @@ create or replace package body idn is
             part := get_token(domain, i + 1);
 
             if (regexp_like(part, '^' || idn_prefix)) then
-                part := substr(part, 5);
+                part := decode_punycode(substr(part, length(idn_prefix) + 1));
             end if;
+
+            ret := ret || part;
 
             if (i != dot_count) then
                 ret := ret || '.';
