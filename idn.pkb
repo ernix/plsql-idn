@@ -62,6 +62,30 @@ create or replace package body idn is
         return dec_lead * 1024 + dec_trail + surrogate_offset;
     end;
 
+    -- http://codezine.jp/article/detail/1592
+    function unicode_string (
+        n number
+    ) return varchar2 deterministic is
+        offset constant number := 65536; -- 0x10000
+        x    number := n - offset;
+        high number := trunc(x / 1024) + 55296; -- 0xD800
+        low  number := mod(x, 1024) + 56320; -- 0xDC00
+    begin
+        if (n is null) then
+            return null;
+        end if;
+
+        if (x < 0) then
+            return unistr(backslash || lpad(to_char(n, 'FMXXXX'), 4, '0'));
+        end if;
+
+        -- surrogate pair
+        return unistr( backslash
+                    || lpad(to_char(high, 'FMXXXX'), 4, '0')
+                    || backslash
+                    || lpad(to_char(low, 'FMXXXX'), 4, '0'));
+    end;
+
     -- decode_digit(cp) returns the numeric value of a basic code point (for
     -- use in representing integers) in the range 0 to base-1, or base if cp is
     -- does not represent a value.
@@ -269,18 +293,7 @@ create or replace package body idn is
                 output_arr(output_arr.count - j + 1)
                     := output_arr(output_arr.count - j);
             end loop;
-            hhhhhhhh := lpad(to_char(n, 'FMXXXXXXXX'), 8, '0');
-            surrogate_high := substr(hhhhhhhh, 1, 4);
-            surrogate_low  := substr(hhhhhhhh, 5);
-            if (surrogate_high != '0000') then
-                output_arr(i + 1)
-                    := unistr( backslash
-                            || surrogate_high
-                            || backslash
-                            || surrogate_low);
-            else
-                output_arr(i + 1) := unistr(backslash || surrogate_low);
-            end if;
+            output_arr(i + 1) := unicode_string(n);
 
             i := i + 1;
         end loop;
