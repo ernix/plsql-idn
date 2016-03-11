@@ -62,6 +62,9 @@ create or replace package body idn is
         return dec_lead * 1024 + dec_trail + surrogate_offset;
     end;
 
+    -- decode_digit(cp) returns the numeric value of a basic code point (for
+    -- use in representing integers) in the range 0 to base-1, or base if cp is
+    -- does not represent a value.
     function decode_digit (
         cp number
     ) return number deterministic is
@@ -98,6 +101,7 @@ create or replace package body idn is
         return cpi;
     end;
 
+    -- Bias adaptation function
     function adapt (
         input_delta number,
         numpoints number,
@@ -125,6 +129,10 @@ create or replace package body idn is
         return trunc(k + (base - tmin + 1) * delta / (delta + skew));
     end;
 
+    -- encode_basic(bcp,flag) forces a basic code point to lowercase if flag is
+    -- zero, uppercase if flag is nonzero, and returns the resulting code
+    -- point.  The code point is unchanged if it is caseless.  The behavior is
+    -- undefined if bcp is not a basic code point.
     function encode_basic (
         input_bcp number,
         flag      number
@@ -170,10 +178,15 @@ create or replace package body idn is
         surrogate_high varchar2(4);
         surrogate_low  varchar2(4);
     begin
+        -- Handle the basic code points: Let basic be the number of input code 
+        -- points before the last delimiter, or 0 if there is none, then
+        -- copy the first basic code points to the output.
         if (basic < 0) then
             basic := 0;
         end if;
 
+        -- Main decoding loop: Start just after the last delimiter if any
+        -- basic code points were copied; start at the beginning otherwise. 
         for j in 1 .. basic loop
             if (unicode_point(substr(input, j, 1)) >= 128) then -- 128 == 0x80
                 raise illegal_input;
@@ -187,10 +200,16 @@ create or replace package body idn is
             ic := basic + 1;
         end if;
 
+        -- ic is the index of the next character to be consumed,
         while (ic < input_len) loop
             oldi := i;
             w := 1;
             k := base;
+
+            -- Decode a generalized variable-length integer into delta,
+            -- which gets added to i. The overflow checking is easier
+            -- if we increase i as we go, then subtract off its starting 
+            -- value at the end to obtain delta.
             loop
                 if (ic >= input_len) then
                     raise range_error;
@@ -228,12 +247,21 @@ create or replace package body idn is
             o := o + 1;
             bias := adapt(i - oldi, o, oldi = 0);
 
+            -- i was supposed to wrap around from out to 0,
+            -- incrementing n each time, so we'll fix that now: 
             if (trunc(i / o) > maxint - n) then
                 raise range_error;
             end if;
 
             n := n + trunc(i / o);
             i := mod(i, o);
+
+            -- Insert n at position i of the output: 
+            -- Case of last character determines uppercase flag: 
+            -- TODO: preserve_case
+            -- if (preserve_case) then
+                -- case_flags.splice(i, 0, input.charCodeAt(ic -1) -65 < 26);
+            -- end if;
 
             -- splice(output_arr, i, 0, n)
             output_arr.extend;
@@ -257,6 +285,15 @@ create or replace package body idn is
 
             i := i + 1;
         end loop;
+
+        -- TODO: preserve_case
+        -- if (preserve_case) then
+            -- for (i = 0, len = output.length; i < len; i++) {
+            --     if (case_flags[i]) {
+            --         output[i] = (String.fromCharCode(output[i]).toUpperCase()).charCodeAt(0);
+            --     }
+            -- }
+        -- end if;
 
         for j in 1 .. output_arr.count loop
             output := output || output_arr(j);
@@ -285,7 +322,7 @@ create or replace package body idn is
         k            number;
         t            number;
         ijv          number;
-        case_flags   varchar2(1);
+        -- case_flags   varchar2(1);
         input_length number        := nvl(length(input), 0);
         output       varchar2(256) := '';
         c            varchar2(1 char);
@@ -347,6 +384,7 @@ create or replace package body idn is
                 if (ijv = n) then
                     q := delta;
                     k := base;
+                    -- Represent delta as a generalized variable-length integer
                     loop
                         t := case when k <= bias        then tmin
                                   when k >= bias + tmax then tmax
@@ -354,7 +392,9 @@ create or replace package body idn is
 
                         exit when (q < t);
 
-                        output := output || chr(encode_digit(t + mod(q - t, base - t), false));
+                        output
+                            := output
+                            || chr(encode_digit(t + mod(q-t, base-t), false));
 
                         q := trunc((q - t) / (base - t));
                         k := k + base;
