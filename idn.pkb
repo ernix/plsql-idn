@@ -1,15 +1,16 @@
 create or replace package body idn is
     -- private
-    initial_n    number           := 128;
-    initial_bias number           := 72;
-    delimiter    varchar2(1 char) := unistr('\002D');
-    damp         number           := 700;
-    base         number           := 36;
-    tmin         number           := 1;
-    tmax         number           := 26;
-    skew         number           := 38;
-    maxint       number           := 2147483647; -- 0x7fffffff
+    initial_n    number                  := 128;
+    initial_bias number                  := 72;
+    delimiter    varchar2(1 char)        := unistr('\002D');
+    damp         number                  := 700;
+    base         number                  := 36;
+    tmin         number                  := 1;
+    tmax         number                  := 26;
+    skew         number                  := 38;
+    maxint       number                  := 2147483647; -- 0x7fffffff
     idn_prefix constant varchar2(4 char) := 'xn--';
+    backslash  constant varchar2(1 char) := unistr('\005C');
 
     function get_token (
         str varchar2,
@@ -158,7 +159,8 @@ create or replace package body idn is
         range_error exception;
         pragma exception_init(range_error, -6504);
         output     varchar2(256) := '';
-        output_uni varchar2(256) := '';
+        type string_array is varray(255) of varchar(5); -- length('\HHHH')
+        output_arr string_array := string_array();
         case_flags varchar2(256);
         input_len  number := nvl(length(input), 0);
         n          number := initial_n;
@@ -181,11 +183,12 @@ create or replace package body idn is
             basic := 0;
         end if;
 
-        for j in 1 .. (basic - 1) loop
+        for j in 1 .. basic loop
             if (unicode_point(substr(input, j, 1)) >= 128) then -- 128 == 0x80
                 raise illegal_input;
             end if;
-            output := output || substr(input, j, 1);
+            output_arr.extend;
+            output_arr(j) := substr(input, j, 1);
             o := o + 1;
         end loop;
 
@@ -241,13 +244,23 @@ create or replace package body idn is
             n := n + trunc(i / o);
             i := mod(i, o);
 
-            -- TODO: varchar2ではごまかせない。これは本格的にvarrayを使わないといけないかも。
-            output := splice(output, i, 1, '\\' || trim(to_char(n, 'xxxx')));
-        dbms_output.put_line(unistr(output));
+            -- splice(output_arr, i, 0, n)
+            output_arr.extend;
+            for j in 1 .. (output_arr.count - i) loop
+                exit when (output_arr.count -j < 1);
+                output_arr(output_arr.count - j + 1)
+                    := output_arr(output_arr.count - j);
+            end loop;
+            output_arr(i + 1) := unistr(backslash || trim(to_char(n, 'XXXX')));
+
             i := i + 1;
         end loop;
 
-        return output_uni;
+        for j in 1 .. output_arr.count loop
+            output := output || output_arr(j);
+        end loop;
+
+        return output;
     exception
         when illegal_input then return null;
         when range_error   then return null;
@@ -368,7 +381,8 @@ create or replace package body idn is
     ) return varchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
-        dot_count number := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
+        dot_count number
+            := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
         i number;
         part varchar2(256) := '';
         ret  varchar2(256) := '';
@@ -397,7 +411,8 @@ create or replace package body idn is
     ) return varchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
-        dot_count number := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
+        dot_count number
+            := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
         i number;
         part varchar2(256) := '';
         ret  varchar2(256) := '';
