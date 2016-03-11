@@ -145,7 +145,6 @@ create or replace package body idn is
              + (case when flag = 0 and bcp - 65 < 26 then 1 else 0 end) * 32;
     end;
 
-    -- public
     function decode_punycode (
         input varchar2,
         preserve_case boolean := false
@@ -448,6 +447,7 @@ create or replace package body idn is
         when invalid_domain then return null;
     end;
 
+    -- public
     function ascii_to_domain (
         domain varchar2
     ) return varchar2 is
