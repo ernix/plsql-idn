@@ -1,16 +1,16 @@
 create or replace package body idn is
     -- private
-    initial_n    number                  := 128;
-    initial_bias number                  := 72;
-    delimiter    varchar2(1 char)        := unistr('\002D');
-    damp         number                  := 700;
-    base         number                  := 36;
-    tmin         number                  := 1;
-    tmax         number                  := 26;
-    skew         number                  := 38;
-    maxint       number                  := 2147483647; -- 0x7fffffff
-    idn_prefix constant varchar2(4 char) := 'xn--';
-    backslash  constant varchar2(1 char) := unistr('\005C');
+    initial_n    constant number           := 128;
+    initial_bias constant number           := 72;
+    delimiter    constant varchar2(1 char) := unistr('\002D');
+    damp         constant number           := 700;
+    base         constant number           := 36;
+    tmin         constant number           := 1;
+    tmax         constant number           := 26;
+    skew         constant number           := 38;
+    maxint       constant number           := 2147483647; -- 0x7fffffff
+    idn_prefix   constant varchar2(4 char) := 'xn--';
+    backslash    constant varchar2(1 char) := unistr('\005C');
 
     function get_token (
         str varchar2,
