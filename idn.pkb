@@ -438,7 +438,7 @@ create or replace package body idn is
         for i in 0 .. dot_count loop
             part := get_token(domain, i + 1);
 
-            if (regexp_like(part, '[^A-Za-z0-9-]')) then
+            if (part != asciistr(part)) then
                 part := idn_prefix || encode_punycode(part);
             end if;
 
@@ -462,6 +462,7 @@ create or replace package body idn is
         pragma exception_init(invalid_domain, -6503);
         dot_count number
             := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
+        idn_prefix_len number := nvl(length(idn_prefix), 0);
         part varchar2(256) := '';
         ret  varchar2(256) := '';
         i    number;
@@ -469,8 +470,8 @@ create or replace package body idn is
         for i in 0 .. dot_count loop
             part := get_token(domain, i + 1);
 
-            if (regexp_like(part, '^' || idn_prefix)) then
-                part := decode_punycode(substr(part, length(idn_prefix) + 1));
+            if (substr(part, 1, idn_prefix_len) = idn_prefix) then
+                part := decode_punycode(substr(part, idn_prefix_len + 1));
             end if;
 
             ret := ret || part;
