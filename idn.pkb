@@ -27,7 +27,7 @@ create or replace package body idn is
             if head = 0 then
                 return null;
             else
-               head := head + length(sep);
+               head := head + nvl(length(sep), 0);
             end if;
         end if;
         tail := instr(str, sep, head, 1);
