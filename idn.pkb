@@ -187,7 +187,7 @@ create or replace package body idn is
         i          number := 0;
         ic         number := 0;
         bias       number := initial_bias;
-        basic      number := instr(input, delimiter, -1, 1);
+        basic      number := instr(input, delimiter, -1, 1) - 1;
         j          number;
         oldi       number;
         w          number;
@@ -232,8 +232,8 @@ create or replace package body idn is
                     raise range_error;
                 end if;
 
-                digit := decode_digit(ascii(substr(input, ic + 1, ic + 2)));
                 ic := ic + 1;
+                digit := decode_digit(ascii(substr(input, ic, 1)));
 
                 if (digit >= base) then
                     raise range_error;
