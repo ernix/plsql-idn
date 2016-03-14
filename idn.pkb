@@ -1,5 +1,5 @@
 create or replace package body idn is
-    -- private
+    -- constants
     initial_n    constant number           := 128;
     initial_bias constant number           := 72;
     delimiter    constant varchar2(1 char) := unistr('\002D');
@@ -12,6 +12,10 @@ create or replace package body idn is
     idn_prefix   constant varchar2(4 char) := 'xn--';
     backslash    constant varchar2(1 char) := unistr('\005C');
 
+-- version
+function VERSION (v varchar2 := '0.01') return varchar2 is begin return v; end;
+
+    -- private
     function get_token (
         str varchar2,
         i   number,

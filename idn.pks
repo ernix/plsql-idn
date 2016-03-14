@@ -42,6 +42,8 @@
  *   "Shin Kojima" <kojima@interlink.ad.jp>
  */
 create or replace package idn is
+    function VERSION (v varchar2 := '0.01')
+        return varchar2;
     function ascii_to_domain (domain varchar2)
         return varchar2 deterministic;
     function domain_to_ascii (domain varchar2)
