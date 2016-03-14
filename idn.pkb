@@ -194,12 +194,6 @@ create or replace package body idn is
         k          number;
         digit      number;
         t          number;
-        len        number;
-        l          number;
-        ret        varchar2(256) := '';
-        hhhhhhhh   varchar2(8);
-        surrogate_high varchar2(4);
-        surrogate_low  varchar2(4);
     begin
         -- Handle the basic code points: Let basic be the number of input code 
         -- points before the last delimiter, or 0 if there is none, then
