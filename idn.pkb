@@ -177,18 +177,18 @@ create or replace package body idn is
         pragma exception_init(illegal_input, -6503);
         range_error exception;
         pragma exception_init(range_error, -6504);
-        output     varchar2(256) := '';
         type string_array is varray(255) of varchar(5); -- length('\HHHH')
         output_arr string_array := string_array();
+        output     varchar2(256) := '';
         case_flags varchar2(256);
         input_len  number := nvl(length(input), 0);
         n          number := initial_n;
         o          number := 0;
         i          number := 0;
+        ic         number := 0;
         bias       number := initial_bias;
         basic      number := instr(input, delimiter, -1, 1);
         j          number;
-        ic         number := 0;
         oldi       number;
         w          number;
         k          number;
@@ -329,8 +329,8 @@ create or replace package body idn is
         t            number;
         ijv          number;
         -- case_flags   varchar2(1);
-        input_length number        := nvl(length(input), 0);
-        output       varchar2(256) := '';
+        input_length number           := nvl(length(input), 0);
+        output       varchar2(256)    := '';
         c            varchar2(1 char);
     begin
         -- TODO: preserve_case
@@ -431,9 +431,9 @@ create or replace package body idn is
         pragma exception_init(invalid_domain, -6503);
         dot_count number
             := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
-        i number;
         part varchar2(256) := '';
         ret  varchar2(256) := '';
+        i    number;
     begin
         for i in 0 .. dot_count loop
             part := get_token(domain, i + 1);
@@ -462,9 +462,9 @@ create or replace package body idn is
         pragma exception_init(invalid_domain, -6503);
         dot_count number
             := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
-        i number;
         part varchar2(256) := '';
         ret  varchar2(256) := '';
+        i    number;
     begin
         for i in 0 .. dot_count loop
             part := get_token(domain, i + 1);
