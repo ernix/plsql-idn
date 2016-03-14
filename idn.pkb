@@ -108,7 +108,7 @@ create or replace package body idn is
     -- for representing integers) is d, which needs to be in the range 0 to
     -- base-1.  The lowercase form is used unless flag is nonzero, in which
     -- case the uppercase form is used. The behavior is undefined if flag is
-    -- nonzero and digit d has no uppercase form. 
+    -- nonzero and digit d has no uppercase form.
     function encode_digit (
         d    number,
         flag boolean
@@ -195,7 +195,7 @@ create or replace package body idn is
         digit      number;
         t          number;
     begin
-        -- Handle the basic code points: Let basic be the number of input code 
+        -- Handle the basic code points: Let basic be the number of input code
         -- points before the last delimiter, or 0 if there is none, then
         -- copy the first basic code points to the output.
         if (basic < 0) then
@@ -203,7 +203,7 @@ create or replace package body idn is
         end if;
 
         -- Main decoding loop: Start just after the last delimiter if any
-        -- basic code points were copied; start at the beginning otherwise. 
+        -- basic code points were copied; start at the beginning otherwise.
         for j in 1 .. basic loop
             if (unicode_point(substr(input, j, 1)) >= 128) then -- 128 == 0x80
                 raise illegal_input;
@@ -225,7 +225,7 @@ create or replace package body idn is
 
             -- Decode a generalized variable-length integer into delta,
             -- which gets added to i. The overflow checking is easier
-            -- if we increase i as we go, then subtract off its starting 
+            -- if we increase i as we go, then subtract off its starting
             -- value at the end to obtain delta.
             loop
                 if (ic >= input_len) then
@@ -265,7 +265,7 @@ create or replace package body idn is
             bias := adapt(i - oldi, o, oldi = 0);
 
             -- i was supposed to wrap around from out to 0,
-            -- incrementing n each time, so we'll fix that now: 
+            -- incrementing n each time, so we'll fix that now:
             if (trunc(i / o) > maxint - n) then
                 raise range_error;
             end if;
@@ -273,8 +273,8 @@ create or replace package body idn is
             n := n + trunc(i / o);
             i := mod(i, o);
 
-            -- Insert n at position i of the output: 
-            -- Case of last character determines uppercase flag: 
+            -- Insert n at position i of the output:
+            -- Case of last character determines uppercase flag:
             -- TODO: preserve_case
             -- if (preserve_case) then
                 -- case_flags.splice(i, 0, input.charCodeAt(ic -1) -65 < 26);
@@ -349,7 +349,7 @@ create or replace package body idn is
         h := b;
 
         -- h is the number of code points that have been handled, b is the
-        -- number of basic code points 
+        -- number of basic code points
 
         if (b > 0) then
             output := output || delimiter;
@@ -357,7 +357,7 @@ create or replace package body idn is
 
         while (h < input_length) loop
             -- All non-basic code points < n have been handled already. Find
-            -- the next larger one: 
+            -- the next larger one:
 
             m := maxint;
             for j in 1 .. input_length loop
@@ -368,7 +368,7 @@ create or replace package body idn is
             end loop;
 
             -- Increase delta enough to advance the decoder's <n,i> state to
-            -- <m,0>, but guard against overflow: 
+            -- <m,0>, but guard against overflow:
 
             if (m - n > trunc((maxint - delta) / (h + 1))) then
                 raise range_error;
