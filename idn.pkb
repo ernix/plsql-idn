@@ -174,9 +174,9 @@ create or replace package body idn is
         preserve_case boolean := false
     ) return varchar2 deterministic is
         illegal_input exception;
-        pragma exception_init(illegal_input, -6503);
+        pragma exception_init(illegal_input, -6502);
         range_error exception;
-        pragma exception_init(range_error, -6504);
+        pragma exception_init(range_error, -6503);
         type string_array is varray(255) of varchar(5); -- length('\HHHH')
         output_arr string_array := string_array();
         output     varchar2(256) := '';
@@ -316,7 +316,7 @@ create or replace package body idn is
         preserve_case boolean := false
     ) return varchar2 deterministic is
         range_error exception;
-        pragma exception_init(range_error, -6504);
+        pragma exception_init(range_error, -6503);
         n            number := initial_n;
         delta        number := 0;
         h            number;
