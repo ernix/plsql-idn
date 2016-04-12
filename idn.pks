@@ -46,7 +46,7 @@ create or replace package idn is
         return varchar2;
     function ascii_to_domain (domain varchar2)
         return nvarchar2 deterministic;
-    function domain_to_ascii (domain varchar2)
+    function domain_to_ascii (domain nvarchar2)
         return varchar2 deterministic;
 end;
 /

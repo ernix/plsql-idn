@@ -17,10 +17,10 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
     -- private
     function get_token (
-        str varchar2,
+        str nvarchar2,
         i   number,
-        sep varchar2 := '.'
-    ) return varchar2 deterministic is
+        sep nvarchar2 := '.'
+    ) return nvarchar2 deterministic is
         head number;
         tail number;
     begin
@@ -44,7 +44,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
     -- http://www.sqlsnippets.com/en/topic-13438.html
     function unicode_point (
-        c varchar2
+        c nvarchar2
     ) return number deterministic is
         fc constant varchar2(2 char) := substrc(c, 1, 1);
         rc constant raw(8) := utl_i18n.string_to_raw(fc, 'AL16UTF16');
@@ -316,7 +316,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
     end;
 
     function encode_punycode (
-        input         varchar2,
+        input         nvarchar2,
         preserve_case boolean := false
     ) return varchar2 deterministic is
         range_error exception;
@@ -335,7 +335,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         -- case_flags   varchar2(1);
         input_length number           := nvl(length(input), 0);
         output       varchar2(256)    := '';
-        c            varchar2(1 char);
+        c            nvarchar2(1 char);
     begin
         -- TODO: preserve_case
         -- if (preserve_case) then
@@ -429,14 +429,14 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
     end;
 
     function domain_to_ascii (
-        domain varchar2
+        domain nvarchar2
     ) return varchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
         dot_count number
             := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
-        part varchar2(256) := '';
-        ret  varchar2(256) := '';
+        part nvarchar2(256) := '';
+        ret  nvarchar2(256) := '';
         i    number;
     begin
         for i in 0 .. dot_count loop
