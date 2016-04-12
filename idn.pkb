@@ -69,7 +69,7 @@ function VERSION (v varchar2 := '0.01') return varchar2 is begin return v; end;
     -- http://codezine.jp/article/detail/1592
     function unicode_string (
         n number
-    ) return varchar2 deterministic is
+    ) return nvarchar2 deterministic is
         offset constant number := 65536; -- 0x10000
         x    number := n - offset;
         high number := trunc(x / 1024) + 55296; -- 0xD800
@@ -174,16 +174,16 @@ function VERSION (v varchar2 := '0.01') return varchar2 is begin return v; end;
     end;
 
     function decode_punycode (
-        input varchar2,
+        input nvarchar2,
         preserve_case boolean := false
-    ) return varchar2 deterministic is
+    ) return nvarchar2 deterministic is
         illegal_input exception;
         pragma exception_init(illegal_input, -6502);
         range_error exception;
         pragma exception_init(range_error, -6503);
-        type string_array is varray(255) of varchar(5); -- length('\HHHH')
+        type string_array is varray(255) of nvarchar2(5); -- length('\HHHH')
         output_arr string_array := string_array();
-        output     varchar2(256) := '';
+        output     nvarchar2(256) := '';
         case_flags varchar2(256);
         input_len  number := nvl(length(input), 0);
         n          number := initial_n;
@@ -461,14 +461,14 @@ function VERSION (v varchar2 := '0.01') return varchar2 is begin return v; end;
     -- public
     function ascii_to_domain (
         domain varchar2
-    ) return varchar2 is
+    ) return nvarchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
         dot_count number
             := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
         idn_prefix_len number := nvl(length(idn_prefix), 0);
-        part varchar2(256) := '';
-        ret  varchar2(256) := '';
+        part nvarchar2(256) := '';
+        ret  nvarchar2(256) := '';
         i    number;
     begin
         for i in 0 .. dot_count loop
