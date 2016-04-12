@@ -13,7 +13,7 @@ create or replace package body idn is
     backslash    constant varchar2(1 char) := unistr('\005C');
 
 -- version
-function VERSION (v varchar2 := '0.01') return varchar2 is begin return v; end;
+function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
     -- private
     function get_token (
