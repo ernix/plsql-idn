@@ -1,19 +1,19 @@
 create or replace package body idn is
     -- constants
-    initial_n    constant number           := 128;
-    initial_bias constant number           := 72;
-    delimiter    constant varchar2(1 char) := unistr('\002D');
-    damp         constant number           := 700;
-    base         constant number           := 36;
-    tmin         constant number           := 1;
-    tmax         constant number           := 26;
-    skew         constant number           := 38;
-    maxint       constant number           := 2147483647; -- 0x7fffffff
-    idn_prefix   constant varchar2(4 char) := 'xn--';
-    backslash    constant varchar2(1 char) := unistr('\005C');
+    initial_n    constant number            := 128;
+    initial_bias constant number            := 72;
+    delimiter    constant nvarchar2(1 char) := unistr('\002D');
+    damp         constant number            := 700;
+    base         constant number            := 36;
+    tmin         constant number            := 1;
+    tmax         constant number            := 26;
+    skew         constant number            := 38;
+    maxint       constant number            := 2147483647; -- 0x7fffffff
+    idn_prefix   constant nvarchar2(4 char) := 'xn--';
+    backslash    constant nvarchar2(1 char) := unistr('\005C');
 
 -- version
-function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
+function VERSION (v varchar2 := '0.03') return varchar2 is begin return v; end;
 
     -- private
     function get_token (
@@ -27,43 +27,19 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         if i = 1 then
             head := 1;
         else
-            head := instr(str, sep, 1, i - 1);
+            head := instrc(str, sep, 1, i - 1);
             if head = 0 then
                 return null;
             else
-               head := head + nvl(length(sep), 0);
+               head := head + nvl(lengthc(sep), 0);
             end if;
         end if;
-        tail := instr(str, sep, head, 1);
+        tail := instrc(str, sep, head, 1);
         if tail = 0 then
-            return substr(str, head);
+            return substrc(str, head);
         else
-            return substr(str, head, tail - head);
+            return substrc(str, head, tail - head);
         end if;
-    end;
-
-    -- http://www.sqlsnippets.com/en/topic-13438.html
-    function unicode_point (
-        c nvarchar2
-    ) return number deterministic is
-        fc constant varchar2(2 char) := substrc(c, 1, 1);
-        rc constant raw(8) := utl_i18n.string_to_raw(fc, 'AL16UTF16');
-        hex_val constant varchar(8) := rawtohex(rc);
-        hex_lead  constant char(4) := substr(hex_val, 1, 4);
-        hex_trail constant char(4) := substr(hex_val, 5, 4);
-        dec_lead  constant number := to_number(hex_lead,  'XXXX');
-        dec_trail constant number := to_number(hex_trail, 'XXXX');
-        surrogate_offset constant number := -56613888;
-    begin
-        if (c is null) then
-            return null;
-        end if;
-
-        if (hex_trail is null) then
-            return dec_lead;
-        end if;
-
-        return dec_lead * 1024 + dec_trail + surrogate_offset;
     end;
 
     -- http://codezine.jp/article/detail/1592
@@ -185,13 +161,13 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         output_arr string_array := string_array();
         output     nvarchar2(256) := '';
         case_flags varchar2(256);
-        input_len  number := nvl(length(input), 0);
+        input_len  number := nvl(lengthc(input), 0);
         n          number := initial_n;
         o          number := 0;
         i          number := 0;
         ic         number := 0;
         bias       number := initial_bias;
-        basic      number := instr(input, delimiter, -1, 1) - 1;
+        basic      number := instrc(input, delimiter, -1, 1) - 1;
         j          number;
         oldi       number;
         w          number;
@@ -209,11 +185,11 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         -- Main decoding loop: Start just after the last delimiter if any
         -- basic code points were copied; start at the beginning otherwise.
         for j in 1 .. basic loop
-            if (unicode_point(substr(input, j, 1)) >= 128) then -- 128 == 0x80
+            if (ascii(substrc(input, j, 1)) >= 128) then -- 128 == 0x80
                 raise illegal_input;
             end if;
             output_arr.extend;
-            output_arr(j) := substr(input, j, 1);
+            output_arr(j) := substrc(input, j, 1);
             o := o + 1;
         end loop;
 
@@ -237,7 +213,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
                 end if;
 
                 ic := ic + 1;
-                digit := decode_digit(ascii(substr(input, ic, 1)));
+                digit := decode_digit(ascii(substrc(input, ic, 1)));
 
                 if (digit >= base) then
                     raise range_error;
@@ -318,7 +294,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
     function encode_punycode (
         input         nvarchar2,
         preserve_case boolean := false
-    ) return varchar2 deterministic is
+    ) return nvarchar2 deterministic is
         range_error exception;
         pragma exception_init(range_error, -6503);
         n            number := initial_n;
@@ -333,8 +309,8 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         t            number;
         ijv          number;
         -- case_flags   varchar2(1);
-        input_length number           := nvl(length(input), 0);
-        output       varchar2(256)    := '';
+        input_length number            := nvl(lengthc(input), 0);
+        output       nvarchar2(256)    := '';
         c            nvarchar2(1 char);
     begin
         -- TODO: preserve_case
@@ -343,13 +319,13 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         -- end if;
 
         for j in 1 .. input_length loop
-            c := substr(input, j, 1);
-            if (unicode_point(c) < 128) then
+            c := substrc(input, j, 1);
+            if (ascii(c) < 128) then
                 output := output || c;
             end if;
         end loop;
 
-        b := nvl(length(output), 0);
+        b := nvl(lengthc(output), 0);
         h := b;
 
         -- h is the number of code points that have been handled, b is the
@@ -365,7 +341,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
             m := maxint;
             for j in 1 .. input_length loop
-                ijv := unicode_point(substr(input, j, 1));
+                ijv := ascii(substrc(input, j, 1));
                 if (ijv >= n and ijv < m) then
                     m := ijv;
                 end if;
@@ -382,7 +358,7 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
             n := m;
 
             for j in 1 .. input_length loop
-                ijv := unicode_point(substr(input, j, 1));
+                ijv := ascii(substrc(input, j, 1));
 
                 if (ijv < n) then
                     delta := delta + 1;
@@ -404,14 +380,14 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
                         output
                             := output
-                            || chr(encode_digit(t + mod(q-t, base-t), false));
+                            || nchr(encode_digit(t + mod(q-t, base-t), false));
 
                         q := trunc((q - t) / (base - t));
                         k := k + base;
                     end loop;
 
                     -- TODO: preserve_case
-                    output := output || chr(encode_digit(q, false));
+                    output := output || nchr(encode_digit(q, false));
 
                     bias := adapt(delta, h + 1, h = b);
                     delta := 0;
@@ -430,11 +406,11 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
     function domain_to_ascii (
         domain nvarchar2
-    ) return varchar2 is
+    ) return nvarchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
         dot_count number
-            := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
+            := nvl(lengthc(domain), 0) - nvl(lengthc(replace(domain, '.')), 0);
         part nvarchar2(256) := '';
         ret  nvarchar2(256) := '';
         i    number;
@@ -460,13 +436,13 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
 
     -- public
     function ascii_to_domain (
-        domain varchar2
+        domain nvarchar2
     ) return nvarchar2 is
         invalid_domain exception;
         pragma exception_init(invalid_domain, -6503);
         dot_count number
-            := nvl(length(domain), 0) - nvl(length(replace(domain, '.')), 0);
-        idn_prefix_len number := nvl(length(idn_prefix), 0);
+            := nvl(lengthc(domain), 0) - nvl(lengthc(replace(domain, '.')), 0);
+        idn_prefix_len number := nvl(lengthc(idn_prefix), 0);
         part nvarchar2(256) := '';
         ret  nvarchar2(256) := '';
         i    number;
@@ -474,8 +450,8 @@ function VERSION (v varchar2 := '0.02') return varchar2 is begin return v; end;
         for i in 0 .. dot_count loop
             part := get_token(domain, i + 1);
 
-            if (substr(part, 1, idn_prefix_len) = idn_prefix) then
-                part := decode_punycode(substr(part, idn_prefix_len + 1));
+            if (substrc(part, 1, idn_prefix_len) = idn_prefix) then
+                part := decode_punycode(substrc(part, idn_prefix_len + 1));
             end if;
 
             ret := ret || part;
