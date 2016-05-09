@@ -46,4 +46,4 @@ http://stackoverflow.com/questions/183485/can-anyone-recommend-a-good-free-javas
 This software is released under the MIT License, see LICENSE
 
 ## AUTHOR:
-"Shin Kojima" &lt;shin@kojima.org&rt;
+"Shin Kojima" &lt;shin@kojima.org&gt;
