@@ -1,7 +1,7 @@
 # IDN - Internationalized Domain Name(IDN) helper package for Oracle
 
 ## DESCRIPTION:
-This package provides functions to deal with IDN.
+This package provides functions to convert IDN from/to ascii/unicode
 
 ## CAUTION:
 Keep in mind that this package does NOT provide any StringPrep/NamePrep
